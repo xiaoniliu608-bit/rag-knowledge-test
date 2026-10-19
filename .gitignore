@@ -1,0 +1,20 @@
+venv/
+.env
+db/
+uploads/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+
+# 向量库、上传文件
+db/
+uploads/
+
+# 模型缓存
+*.log
+backend/faiss_index/
+

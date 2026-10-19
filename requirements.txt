@@ -1,0 +1,7 @@
+﻿fastapi
+uvicorn
+python-dotenv
+langchain==0.1.20
+langchain-openai
+faiss-cpu
+pypdf
