@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企业知识库AI助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+        }
+        .chat-bubble-user {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        }
+        .chat-bubble-ai {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        .glow {
+            box-shadow: 0 0 40px rgba(59, 130, 246, 0.3);
+        }
+    </style>
+</head>
+<body class="text-white">
+    <div class="container mx-auto max-w-4xl p-4 h-screen flex flex-col">
+        <!-- 顶部标题栏 -->
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                🏢 企业知识库AI助手
+            </h1>
+            <label class="cursor-pointer bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-all glow">
+                📤 上传文档
+                <input type="file" id="fileUpload" accept=".txt,.pdf" class="hidden">
+            </label>
+        </div>
+
+        <!-- 聊天区域 -->
+        <div id="chatArea" class="flex-1 overflow-y-auto space-y-4 mb-4 p-4 rounded-xl bg-white/5 backdrop-blur-sm">
+            <div class="chat-bubble-ai p-4 rounded-lg max-w-3xl">
+                你好！我是企业知识库AI助手，你可以上传公司文档，然后直接向我提问哦~
+            </div>
+        </div>
+
+        <!-- 输入框 -->
+        <div class="flex gap-2">
+            <input 
+                type="text" 
+                id="questionInput" 
+                placeholder="输入你的问题..." 
+                class="flex-1 bg-white/10 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+            <button id="sendBtn" class="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg transition-all glow">
+                发送
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = "http://127.0.0.1:8000";
+        const chatArea = document.getElementById("chatArea");
+        const questionInput = document.getElementById("questionInput");
+        const sendBtn = document.getElementById("sendBtn");
+        const fileUpload = document.getElementById("fileUpload");
+
+        // 上传文件
+        fileUpload.addEventListener("change", async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const formData = new FormData();
+            formData.append("file", file);
+            
+            addMessage("ai", `正在上传文档：${file.name}...`);
+            
+            try {
+                const res = await fetch(`${API_BASE}/upload`, {
+                    method: "POST",
+                    body: formData
+                });
+                const data = await res.json();
+                addMessage("ai", `✅ 文档上传成功！已索引 ${data.chunks || "若干"} 个文本片段`);
+            } catch (err) {
+                addMessage("ai", `❌ 上传失败：${err.message}`);
+            }
+        });
+
+        // 发送问题
+        async function sendQuestion() {
+            const q = questionInput.value.trim();
+            if (!q) return;
+            
+            addMessage("user", q);
+            questionInput.value = "";
+            sendBtn.disabled = true;
+            sendBtn.textContent = "思考中...";
+            
+            try {
+                const res = await fetch(`${API_BASE}/chat`, {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({query: q})
+                });
+                const data = await res.json();
+                addMessage("ai", data.answer);
+            } catch (err) {
+                addMessage("ai", `❌ 请求失败：${err.message}，请检查后端是否启动`);
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.textContent = "发送";
+            }
+        }
+
+        sendBtn.addEventListener("click", sendQuestion);
+        questionInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") sendQuestion();
+        });
+
+        // 添加消息到聊天框
+        function addMessage(type, text) {
+            const div = document.createElement("div");
+            div.className = type === "user" 
+                ? "chat-bubble-user p-4 rounded-lg max-w-3xl ml-auto" 
+                : "chat-bubble-ai p-4 rounded-lg max-w-3xl";
+            div.textContent = text;
+            chatArea.appendChild(div);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+    </script>
+</body>
+</html>
